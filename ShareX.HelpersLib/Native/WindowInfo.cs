@@ -35,11 +35,11 @@ namespace ShareX.HelpersLib
 
         public bool IsHandleCreated => Handle != IntPtr.Zero;
 
-        public string Text => NativeMethods.GetWindowText(Handle);
+        public string Text => OperatingSystem.IsLinux() ? LinuxWindow?.Caption : NativeMethods.GetWindowText(Handle);
 
-        public string ClassName => NativeMethods.GetClassName(Handle);
+        public string ClassName => OperatingSystem.IsLinux() ? LinuxWindow?.ResourceClass ?? "" : NativeMethods.GetClassName(Handle);
 
-        public Process Process => NativeMethods.GetProcessByWindowHandle(Handle);
+        public Process Process => OperatingSystem.IsLinux() ? GetLinuxProcess() : NativeMethods.GetProcessByWindowHandle(Handle);
 
         public string ProcessName
         {
@@ -56,6 +56,11 @@ namespace ShareX.HelpersLib
         {
             get
             {
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxWindow is { Pid: > 0 } window ? LinuxHelpers.GetProcessExecutablePath(window.Pid) : null;
+                }
+
                 using (Process process = Process)
                 {
                     return process?.MainModule?.FileName;
@@ -69,6 +74,11 @@ namespace ShareX.HelpersLib
         {
             get
             {
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxWindow?.Pid ?? 0;
+                }
+
                 using (Process process = Process)
                 {
                     return process.Id;
@@ -76,11 +86,11 @@ namespace ShareX.HelpersLib
             }
         }
 
-        public IntPtr Parent => NativeMethods.GetParent(Handle);
+        public IntPtr Parent => OperatingSystem.IsLinux() ? IntPtr.Zero : NativeMethods.GetParent(Handle);
 
         public Rectangle Rectangle => CaptureHelpers.GetWindowRectangle(Handle);
 
-        public Rectangle ClientRectangle => NativeMethods.GetClientRect(Handle);
+        public Rectangle ClientRectangle => OperatingSystem.IsLinux() ? LinuxWindow?.ClientBounds ?? Rectangle.Empty : NativeMethods.GetClientRect(Handle);
 
         public WindowStyles Style
         {
@@ -129,10 +139,18 @@ namespace ShareX.HelpersLib
         {
             get
             {
+                if (OperatingSystem.IsLinux()) return LinuxWindow?.KeepAbove ?? false;
+
                 return ExStyle.HasFlag(WindowStyles.WS_EX_TOPMOST);
             }
             set
             {
+                if (OperatingSystem.IsLinux())
+                {
+                    KWinBridge.SetWindowProperty(Handle, "keepAbove", value);
+                    return;
+                }
+
                 SetWindowPos(value ? (IntPtr)NativeConstants.HWND_TOPMOST : (IntPtr)NativeConstants.HWND_NOTOPMOST,
                     SetWindowPosFlags.SWP_NOMOVE | SetWindowPosFlags.SWP_NOSIZE);
             }
@@ -142,6 +160,8 @@ namespace ShareX.HelpersLib
         {
             get
             {
+                if (OperatingSystem.IsLinux()) return 255;
+
                 if (Layered)
                 {
                     NativeMethods.GetLayeredWindowAttributes(Handle, out _, out byte alpha, out _);
@@ -152,6 +172,12 @@ namespace ShareX.HelpersLib
             }
             set
             {
+                if (OperatingSystem.IsLinux())
+                {
+                    KWinBridge.SetWindowProperty(Handle, "opacity", value / 255.0);
+                    return;
+                }
+
                 if (value < 255)
                 {
                     Layered = true;
@@ -164,25 +190,48 @@ namespace ShareX.HelpersLib
             }
         }
 
-        public Icon Icon => NativeMethods.GetApplicationIcon(Handle);
+        public Icon Icon => OperatingSystem.IsLinux() ? null : NativeMethods.GetApplicationIcon(Handle);
 
-        public bool IsMaximized => NativeMethods.IsZoomed(Handle);
+        public bool IsMaximized => !OperatingSystem.IsLinux() && NativeMethods.IsZoomed(Handle);
 
-        public bool IsMinimized => NativeMethods.IsIconic(Handle);
+        public bool IsMinimized => OperatingSystem.IsLinux() ? LinuxWindow?.Minimized ?? false : NativeMethods.IsIconic(Handle);
 
-        public bool IsVisible => NativeMethods.IsWindowVisible(Handle);
+        public bool IsVisible => OperatingSystem.IsLinux() ? LinuxWindow?.IsVisible ?? false : NativeMethods.IsWindowVisible(Handle);
 
-        public bool IsCloaked => NativeMethods.IsWindowCloaked(Handle);
+        public bool IsCloaked => !OperatingSystem.IsLinux() && NativeMethods.IsWindowCloaked(Handle);
 
-        public bool IsActive => NativeMethods.IsActive(Handle);
+        public bool IsActive => OperatingSystem.IsLinux() ? CaptureHelpers.GetForegroundWindow() == Handle : NativeMethods.IsActive(Handle);
 
         public WindowInfo(IntPtr handle)
         {
             Handle = handle;
         }
 
+        private LinuxWindow LinuxWindow => KWinBridge.GetWindow(Handle);
+
+        private Process GetLinuxProcess()
+        {
+            int pid = LinuxWindow?.Pid ?? 0;
+            if (pid <= 0) return null;
+
+            try
+            {
+                return Process.GetProcessById(pid);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public void Activate()
         {
+            if (OperatingSystem.IsLinux())
+            {
+                KWinBridge.ActivateWindowAsync(Handle).Wait(2000);
+                return;
+            }
+
             if (IsHandleCreated)
             {
                 NativeMethods.SetForegroundWindow(Handle);
@@ -191,6 +240,12 @@ namespace ShareX.HelpersLib
 
         public void BringToFront()
         {
+            if (OperatingSystem.IsLinux())
+            {
+                Activate();
+                return;
+            }
+
             if (IsHandleCreated)
             {
                 SetWindowPos(SetWindowPosFlags.SWP_NOMOVE | SetWindowPosFlags.SWP_NOSIZE);
@@ -199,6 +254,12 @@ namespace ShareX.HelpersLib
 
         public void Restore()
         {
+            if (OperatingSystem.IsLinux())
+            {
+                Activate();
+                return;
+            }
+
             if (IsHandleCreated)
             {
                 NativeMethods.ShowWindow(Handle, (int)WindowShowStyle.Restore);
@@ -222,6 +283,8 @@ namespace ShareX.HelpersLib
 
         public void SetWindowPos(IntPtr insertAfter, int x, int y, int width, int height, SetWindowPosFlags flags)
         {
+            if (OperatingSystem.IsLinux()) return;
+
             NativeMethods.SetWindowPos(Handle, insertAfter, x, y, width, height, flags);
         }
 

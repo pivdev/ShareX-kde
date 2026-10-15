@@ -149,7 +149,7 @@ namespace ShareX.ScreenCaptureLib
 
         public Bitmap CaptureActiveWindowTransparent()
         {
-            IntPtr handle = NativeMethods.GetForegroundWindow();
+            IntPtr handle = CaptureHelpers.GetForegroundWindow();
 
             return CaptureWindowTransparent(handle);
         }

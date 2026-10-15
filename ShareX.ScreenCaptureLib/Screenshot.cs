@@ -60,6 +60,11 @@ namespace ShareX.ScreenCaptureLib
 
         public Bitmap CaptureWindow(IntPtr handle)
         {
+            if (OperatingSystem.IsLinux())
+            {
+                return CaptureWindowLinux(handle);
+            }
+
             if (handle.ToInt32() > 0)
             {
                 Rectangle rect;
@@ -98,7 +103,7 @@ namespace ShareX.ScreenCaptureLib
 
         public Bitmap CaptureActiveWindow()
         {
-            IntPtr handle = NativeMethods.GetForegroundWindow();
+            IntPtr handle = CaptureHelpers.GetForegroundWindow();
 
             return CaptureWindow(handle);
         }
@@ -112,7 +117,7 @@ namespace ShareX.ScreenCaptureLib
 
         private Bitmap CaptureRectangleNative(Rectangle rect, bool captureCursor = false)
         {
-            IntPtr handle = NativeMethods.GetDesktopWindow();
+            IntPtr handle = OperatingSystem.IsLinux() ? IntPtr.Zero : NativeMethods.GetDesktopWindow();
             return CaptureRectangleNative(handle, rect, captureCursor);
         }
 
@@ -121,6 +126,11 @@ namespace ShareX.ScreenCaptureLib
             if (rect.Width == 0 || rect.Height == 0)
             {
                 return null;
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                return LinuxScreenCapture.CaptureRectangle(rect, CaptureHelpers.GetScreenBounds(), captureCursor);
             }
 
             if (HDRScreenshotColorCorrection)
@@ -153,6 +163,25 @@ namespace ShareX.ScreenCaptureLib
             }
 
             return CaptureRectangleGDI(handle, rect, captureCursor);
+        }
+
+        private Bitmap CaptureWindowLinux(IntPtr handle)
+        {
+            LinuxWindow window = KWinBridge.GetFreshWindow(handle);
+            if (window == null)
+            {
+                return null;
+            }
+
+            // The compositor renders the window on its own, so overlapping windows don't end up in the image.
+            Bitmap bitmap = LinuxScreenCapture.CaptureWindow(handle, CaptureCursor, !CaptureClientArea, CaptureShadow);
+            if (bitmap != null)
+            {
+                return bitmap;
+            }
+
+            Rectangle rect = CaptureClientArea ? window.ClientBounds : window.Bounds;
+            return CaptureRectangle(rect);
         }
 
         private Bitmap CaptureRectangleGDI(IntPtr handle, Rectangle rect, bool captureCursor)

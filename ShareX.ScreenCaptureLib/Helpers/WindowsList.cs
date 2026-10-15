@@ -49,6 +49,17 @@ namespace ShareX.ScreenCaptureLib
 
         public List<WindowInfo> GetWindowsList()
         {
+            if (OperatingSystem.IsLinux())
+            {
+                if (!KWinBridge.IsAvailable) return new List<WindowInfo>();
+
+                int ownProcessId = Environment.ProcessId;
+                return KWinBridge.Query(0).Windows
+                    .Where(x => x.Pid != ownProcessId && !IgnoreWindows.Contains(x.Handle) && !x.DesktopWindow && !x.Dock && !x.SkipTaskbar)
+                    .Select(x => new WindowInfo(x.Handle))
+                    .ToList();
+            }
+
             windows = new List<WindowInfo>();
             EnumWindowsProc ewp = EvalWindows;
             NativeMethods.EnumWindows(ewp, IntPtr.Zero);

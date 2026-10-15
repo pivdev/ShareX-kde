@@ -90,6 +90,11 @@ namespace ShareX.HelpersLib
 
         public static Point GetCursorPosition()
         {
+            if (OperatingSystem.IsLinux())
+            {
+                return KWinBridge.IsAvailable ? KWinBridge.GetCursorPosition() : Point.Empty;
+            }
+
             if (NativeMethods.GetCursorPos(out POINT point))
             {
                 return (Point)point;
@@ -100,6 +105,9 @@ namespace ShareX.HelpersLib
 
         public static void SetCursorPosition(int x, int y)
         {
+            // Wayland does not allow clients to warp the pointer.
+            if (OperatingSystem.IsLinux()) return;
+
             NativeMethods.SetCursorPos(x, y);
         }
 
@@ -115,6 +123,14 @@ namespace ShareX.HelpersLib
 
         public static Color GetPixelColor(int x, int y)
         {
+            if (OperatingSystem.IsLinux())
+            {
+                using SkiaSharp.SKBitmap pixelBitmap = LinuxScreenCapture.CaptureRectangle(new Rectangle(x, y, 1, 1), GetScreenBounds(), false);
+                if (pixelBitmap == null) return Color.Empty;
+                SkiaSharp.SKColor color = pixelBitmap.GetPixel(0, 0);
+                return Color.FromArgb(color.Red, color.Green, color.Blue);
+            }
+
             IntPtr hdc = NativeMethods.GetDC(IntPtr.Zero);
             uint pixel = NativeMethods.GetPixel(hdc, x, y);
             NativeMethods.ReleaseDC(IntPtr.Zero, hdc);
@@ -287,8 +303,23 @@ namespace ShareX.HelpersLib
             return CreateRectangle(posOnClick, newPosition);
         }
 
+        public static IntPtr GetForegroundWindow()
+        {
+            if (OperatingSystem.IsLinux())
+            {
+                return KWinBridge.IsAvailable ? KWinBridge.GetForegroundWindow() : IntPtr.Zero;
+            }
+
+            return NativeMethods.GetForegroundWindow();
+        }
+
         public static Rectangle GetWindowRectangle(IntPtr handle)
         {
+            if (OperatingSystem.IsLinux())
+            {
+                return KWinBridge.GetFreshWindow(handle)?.Bounds ?? Rectangle.Empty;
+            }
+
             Rectangle rect = Rectangle.Empty;
 
             if (NativeMethods.IsDWMEnabled() && NativeMethods.GetExtendedFrameBounds(handle, out Rectangle tempRect))
@@ -311,18 +342,29 @@ namespace ShareX.HelpersLib
 
         public static Rectangle GetActiveWindowRectangle()
         {
-            IntPtr handle = NativeMethods.GetForegroundWindow();
+            IntPtr handle = GetForegroundWindow();
             return GetWindowRectangle(handle);
         }
 
         public static Rectangle GetActiveWindowClientRectangle()
         {
-            IntPtr handle = NativeMethods.GetForegroundWindow();
+            IntPtr handle = GetForegroundWindow();
+
+            if (OperatingSystem.IsLinux())
+            {
+                return KWinBridge.GetWindow(handle)?.ClientBounds ?? Rectangle.Empty;
+            }
+
             return NativeMethods.GetClientRect(handle);
         }
 
         public static bool IsActiveWindowFullscreen()
         {
+            if (OperatingSystem.IsLinux())
+            {
+                return KWinBridge.IsAvailable && KWinBridge.GetWindow(GetForegroundWindow()) is { FullScreen: true, DesktopWindow: false };
+            }
+
             IntPtr handle = NativeMethods.GetForegroundWindow();
 
             if (handle.ToInt32() > 0)

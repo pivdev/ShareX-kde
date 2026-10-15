@@ -164,7 +164,7 @@ namespace ShareX
         {
             TaskMetadata metadata = new TaskMetadata();
 
-            IntPtr handle = NativeMethods.GetForegroundWindow();
+            IntPtr handle = CaptureHelpers.GetForegroundWindow();
             WindowInfo windowInfo = new WindowInfo(handle);
 
             if ((ignoreProcess == null || !windowInfo.ProcessName.Equals(ignoreProcess, StringComparison.OrdinalIgnoreCase)) &&

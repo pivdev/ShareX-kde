@@ -166,7 +166,7 @@ namespace ShareX
                         captureRectangle = CaptureHelpers.GetActiveWindowRectangle();
                     }
 
-                    IntPtr handle = NativeMethods.GetForegroundWindow();
+                    IntPtr handle = CaptureHelpers.GetForegroundWindow();
                     if (!taskSettings.CaptureSettings.CaptureClientArea) captureWindow = handle;
                     WindowInfo activeWindowInfo = new WindowInfo(handle);
                     metadata.UpdateInfo(activeWindowInfo);

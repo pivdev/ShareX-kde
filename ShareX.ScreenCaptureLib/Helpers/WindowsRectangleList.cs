@@ -44,10 +44,32 @@ namespace ShareX.ScreenCaptureLib
 
         private List<SimpleWindowInfo> windows;
         private HashSet<IntPtr> parentHandles;
+
+        private List<SimpleWindowInfo> GetLinuxWindowInfoList()
+        {
+            if (!KWinBridge.IsAvailable)
+            {
+                return new List<SimpleWindowInfo>();
+            }
+
+            int ownProcessId = Environment.ProcessId;
+
+            // KWin reports the stacking order top-most first, which is the order region capture hit-tests in.
+            return KWinBridge.Query(0).Windows
+                .Where(x => x.IsVisible && x.Pid != ownProcessId && !IgnoreHandleList.Contains(x.Handle) &&
+                    !IgnoreClassNameList.Any(ignore => string.Equals(x.ResourceClass, ignore, StringComparison.OrdinalIgnoreCase)))
+                .Select(x => new SimpleWindowInfo(x.Handle, x.Bounds) { IsWindow = true })
+                .ToList();
+        }
         private CancellationTokenSource cts;
 
         public List<SimpleWindowInfo> GetWindowInfoList()
         {
+            if (OperatingSystem.IsLinux())
+            {
+                return GetLinuxWindowInfoList();
+            }
+
             windows = new List<SimpleWindowInfo>();
             parentHandles = new HashSet<IntPtr>();
 

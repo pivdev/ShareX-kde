@@ -1279,7 +1279,7 @@ namespace ShareX
 
             try
             {
-                IntPtr handle = NativeMethods.GetForegroundWindow();
+                IntPtr handle = CaptureHelpers.GetForegroundWindow();
 
                 if (handle.ToInt32() > 0)
                 {
@@ -1300,7 +1300,7 @@ namespace ShareX
 
             try
             {
-                IntPtr handle = NativeMethods.GetForegroundWindow();
+                IntPtr handle = CaptureHelpers.GetForegroundWindow();
 
                 if (handle.ToInt32() > 0)
                 {

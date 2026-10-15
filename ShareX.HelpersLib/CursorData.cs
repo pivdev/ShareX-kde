@@ -52,6 +52,12 @@ namespace ShareX.HelpersLib
             Position = Point.Empty;
             IsVisible = false;
 
+            if (OperatingSystem.IsLinux())
+            {
+                UpdateCursorDataLinux();
+                return;
+            }
+
             CursorInfo cursorInfo = new CursorInfo();
             cursorInfo.cbSize = Marshal.SizeOf(cursorInfo);
 
@@ -105,8 +111,36 @@ namespace ShareX.HelpersLib
             }
         }
 
+        private SKBitmap linuxCursor;
+
+        private void UpdateCursorDataLinux()
+        {
+            linuxCursor?.Dispose();
+            linuxCursor = null;
+            SizeMultiplier = 1f;
+
+            if (!KWinBridge.IsAvailable)
+            {
+                return;
+            }
+
+            (SKBitmap Bitmap, Point Hotspot)? cursor = XCursorLoader.GetDefaultCursor();
+            if (cursor == null)
+            {
+                return;
+            }
+
+            linuxCursor = cursor.Value.Bitmap;
+            Hotspot = cursor.Value.Hotspot;
+            Size = new Size(linuxCursor.Width, linuxCursor.Height);
+            Position = CaptureHelpers.GetCursorPosition();
+            IsVisible = true;
+        }
+
         public static float GetCursorSizeMultiplier()
         {
+            if (OperatingSystem.IsLinux()) return 1f;
+
             float sizeMultiplier = 1f;
 
             int? cursorSize = RegistryHelpers.GetValueDWord(@"SOFTWARE\Microsoft\Accessibility", "CursorSize");
@@ -126,7 +160,7 @@ namespace ShareX.HelpersLib
 
         public void DrawCursor(IntPtr hdcDest, Point offset)
         {
-            if (IsVisible)
+            if (IsVisible && !OperatingSystem.IsLinux())
             {
                 Point drawPosition = new Point(DrawPosition.X - offset.X, DrawPosition.Y - offset.Y);
 
@@ -145,6 +179,6 @@ namespace ShareX.HelpersLib
             canvas.DrawBitmap(cursor, position.X, position.Y);
         }
 
-        public SKBitmap ToBitmap() => WindowsImageInterop.FromIcon(Handle, Size);
+        public SKBitmap ToBitmap() => OperatingSystem.IsLinux() ? linuxCursor?.Copy() : WindowsImageInterop.FromIcon(Handle, Size);
     }
 }

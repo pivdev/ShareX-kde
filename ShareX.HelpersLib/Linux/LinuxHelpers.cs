@@ -53,6 +53,18 @@ namespace ShareX.HelpersLib
 
         public static bool HasExecutable(string name) => FindExecutable(name) != null;
 
+        public static string GetProcessExecutablePath(int pid)
+        {
+            try
+            {
+                return new FileInfo($"/proc/{pid}/exe").LinkTarget;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public static (int ExitCode, string Output, string Error) Run(string fileName, IEnumerable<string> args, string stdin = null, int timeoutMs = 30000)
         {
             ProcessStartInfo psi = new ProcessStartInfo(fileName)
