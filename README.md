@@ -1,3 +1,16 @@
+# ShareX-kde
+
+> **Unofficial port of [ShareX](https://github.com/ShareX/ShareX) to Linux for KDE Plasma (Wayland).**
+> Not affiliated with or endorsed by the ShareX team. Please report Linux-specific problems here, not upstream.
+
+Screenshots, region capture, GIF/video recording, global hotkeys and uploads work on KDE Plasma 6 through KWin and
+KGlobalAccel. Install with `./linux/install.sh`. See [linux/README.md](linux/README.md) for requirements, how the
+Linux backends work, and known limitations.
+
+The original ShareX README follows.
+
+---
+
 <p align="center"><a href="https://getsharex.com"><img src="https://getsharex.com/img/ShareX_Banner.png" alt="ShareX Banner"/></a></p>
 <h3 align="center">Screen capture, file sharing and productivity tool</h3>
 <br>
