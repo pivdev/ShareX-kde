@@ -60,6 +60,13 @@ namespace ShareX.HelpersLib
                             throw new Exception(Localization.Strings.URLHelpers_Invalid_URL);
                         }
 
+#if LINUX
+                        if (OperatingSystem.IsLinux() && string.IsNullOrEmpty(HelpersOptions.BrowserPath))
+                        {
+                            if (!LinuxShell.Open(url)) return;
+                        }
+                        else
+#endif
                         using (Process process = new Process())
                         {
                             ProcessStartInfo psi = new ProcessStartInfo();

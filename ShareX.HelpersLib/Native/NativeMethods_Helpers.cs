@@ -548,6 +548,13 @@ namespace ShareX.HelpersLib
 
         public static SkiaSharp.SKBitmap GetFileThumbnail(string filePath, Size thumbnailSize)
         {
+#if LINUX
+            if (OperatingSystem.IsLinux())
+            {
+                return LinuxShell.GetFileThumbnail(filePath, thumbnailSize.Width, thumbnailSize.Height);
+            }
+#endif
+
             Guid guid = typeof(IShellItemImageFactory).GUID;
             IShellItemImageFactory imageFactory = null;
             IntPtr hbitmap = IntPtr.Zero;

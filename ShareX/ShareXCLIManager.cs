@@ -63,6 +63,12 @@ namespace ShareX
                         continue;
                     }
 
+                    if (OperatingSystem.IsLinux() && TryImportFileTypeArgument(command.Command))
+                    {
+                        // Opened through the .sxcu / .sxie MIME association of the desktop entry ("ShareX %F").
+                        continue;
+                    }
+
                     if (URLHelpers.IsValidURL(command.Command))
                     {
                         UploadManager.DownloadAndUploadFile(command.Command, taskSettings);
@@ -94,6 +100,28 @@ namespace ShareX
             }
 
             return null;
+        }
+
+        private static bool TryImportFileTypeArgument(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+            {
+                return false;
+            }
+
+            if (filePath.EndsWith(".sxcu", StringComparison.OrdinalIgnoreCase))
+            {
+                TaskHelpers.ImportCustomUploader(filePath);
+                return true;
+            }
+
+            if (filePath.EndsWith(".sxie", StringComparison.OrdinalIgnoreCase))
+            {
+                TaskHelpers.ImportImageEffect(filePath);
+                return true;
+            }
+
+            return false;
         }
 
         private bool CheckCustomUploader(CLICommand command)

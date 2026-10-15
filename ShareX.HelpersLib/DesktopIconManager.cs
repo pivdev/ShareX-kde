@@ -31,6 +31,9 @@ namespace ShareX.HelpersLib
     {
         public static bool AreDesktopIconsVisible()
         {
+            // Explorer desktop list view only; Plasma's desktop is a separate Wayland surface that cannot be hidden this way.
+            if (!OperatingSystem.IsWindows()) return false;
+
             IntPtr hIcons = GetDesktopListViewHandle();
 
             return hIcons != IntPtr.Zero && NativeMethods.IsWindowVisible(hIcons);
@@ -38,6 +41,8 @@ namespace ShareX.HelpersLib
 
         public static bool SetDesktopIconsVisibility(bool show)
         {
+            if (!OperatingSystem.IsWindows()) return false;
+
             IntPtr hIcons = GetDesktopListViewHandle();
 
             if (hIcons != IntPtr.Zero)

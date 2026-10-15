@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-sharex-custom-uploader">
+    <comment>ShareX custom uploader</comment>
+    <sub-class-of type="application/json"/>
+    <icon name="sharex"/>
+    <generic-icon name="sharex"/>
+    <glob pattern="*.sxcu"/>
+  </mime-type>
+  <mime-type type="application/x-sharex-image-effect">
+    <comment>ShareX image effect</comment>
+    <sub-class-of type="application/zip"/>
+    <icon name="sharex"/>
+    <generic-icon name="sharex"/>
+    <glob pattern="*.sxie"/>
+  </mime-type>
+</mime-info>

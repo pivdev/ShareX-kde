@@ -60,7 +60,9 @@ namespace ShareX.HelpersLib
         public const string Base58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"; // https://en.wikipedia.org/wiki/Base58
         public const string Base56 = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz"; // A variant, Base56, excludes 1 (one) and o (lowercase o) compared to Base 58.
 
-        public static readonly Version OSVersion = Environment.OSVersion.Version;
+        // Only meaningful on Windows: on Linux Environment.OSVersion is the kernel version, which would make the
+        // IsWindowsXOrGreater checks below return true.
+        public static readonly Version OSVersion = OperatingSystem.IsWindows() ? Environment.OSVersion.Version : new Version(0, 0);
 
         public static string AddZeroes(string input, int digits = 2)
         {
@@ -564,6 +566,12 @@ namespace ShareX.HelpersLib
 
         public static bool IsAdministrator()
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                // Unix: running as root (euid 0).
+                return Environment.IsPrivilegedProcess;
+            }
+
             try
             {
                 using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
@@ -580,6 +588,11 @@ namespace ShareX.HelpersLib
 
         public static bool IsMemberOfAdministratorsGroup()
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return Environment.IsPrivilegedProcess;
+            }
+
             try
             {
                 using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
@@ -637,7 +650,23 @@ namespace ShareX.HelpersLib
 
         public static string GetOperatingSystemProductName(bool includeBit = false)
         {
-            string productName = RegistryHelpers.GetValueString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", RegistryHive.LocalMachine);
+            string productName;
+
+#if LINUX
+            if (OperatingSystem.IsLinux())
+            {
+                productName = LinuxShell.GetOSPrettyName();
+
+                if (!string.IsNullOrEmpty(productName))
+                {
+                    productName = $"{productName} (Linux {Environment.OSVersion.Version})";
+                }
+            }
+            else
+#endif
+            {
+                productName = RegistryHelpers.GetValueString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", RegistryHive.LocalMachine);
+            }
 
             if (string.IsNullOrEmpty(productName))
             {
@@ -794,6 +823,11 @@ namespace ShareX.HelpersLib
         {
             //int state = NativeMethods.GetSystemMetrics(SystemMetric.SM_CONVERTIBLESLATEMODE);
             //return state == 0;
+
+            if (!OperatingSystem.IsWindows())
+            {
+                return false;
+            }
 
             try
             {

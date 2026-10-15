@@ -181,6 +181,13 @@ public sealed partial class BackgroundRemoverViewModel : ViewModelBase, IDisposa
         {
             Directory.CreateDirectory(ModelsFolder);
 
+#if LINUX
+            if (System.OperatingSystem.IsLinux())
+            {
+                ShareX.HelpersLib.LinuxHelpers.OpenWithDefault(ModelsFolder);
+            }
+            else
+#endif
             Process.Start(new ProcessStartInfo
             {
                 FileName = ModelsFolder,
@@ -200,6 +207,13 @@ public sealed partial class BackgroundRemoverViewModel : ViewModelBase, IDisposa
     {
         try
         {
+#if LINUX
+            if (System.OperatingSystem.IsLinux())
+            {
+                ShareX.HelpersLib.LinuxHelpers.OpenWithDefault(BackgroundRemoverGuideUrl);
+                return;
+            }
+#endif
             Process.Start(new ProcessStartInfo
             {
                 FileName = BackgroundRemoverGuideUrl,

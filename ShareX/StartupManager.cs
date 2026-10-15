@@ -59,6 +59,14 @@ namespace ShareX
 #if MicrosoftStore
                 return (StartupState)packageTask.State;
 #else
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    // XDG autostart entry: ~/.config/autostart/sharex.desktop
+                    return LinuxIntegration.GetStartupState();
+                }
+#endif
+
                 if (ShortcutHelpers.CheckShortcut(Environment.SpecialFolder.Startup, "ShareX", StartupTargetPath))
                 {
                     if (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder",
@@ -93,6 +101,19 @@ namespace ShareX
                     throw new NotSupportedException();
                 }
 #else
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    if (value != StartupState.Enabled && value != StartupState.Disabled)
+                    {
+                        throw new NotSupportedException();
+                    }
+
+                    LinuxIntegration.SetStartup(value == StartupState.Enabled);
+                    return;
+                }
+#endif
+
                 if (value == StartupState.Enabled || value == StartupState.Disabled)
                 {
                     ShortcutHelpers.SetShortcut(value == StartupState.Enabled, Environment.SpecialFolder.Startup, "ShareX", StartupTargetPath, "-silent");

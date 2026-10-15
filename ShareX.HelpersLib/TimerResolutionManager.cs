@@ -47,6 +47,9 @@ namespace ShareX.HelpersLib
 
         public static bool Enable(uint period = 1)
         {
+            // timeBeginPeriod (winmm) is Windows only; Linux timers are already high resolution.
+            if (!OperatingSystem.IsWindows()) return false;
+
             lock (thisLock)
             {
                 if (!enabled)
