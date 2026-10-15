@@ -165,7 +165,8 @@ namespace ShareX.HelpersLib
         {
             get
             {
-                return Helpers.IsWindows7OrGreater();
+                // Linux: task managers that implement the Unity LauncherEntry D-Bus API (Plasma, Dash to Dock, ...).
+                return OperatingSystem.IsLinux() || Helpers.IsWindows7OrGreater();
             }
         }
 
@@ -184,6 +185,18 @@ namespace ShareX.HelpersLib
 
         public static void SetProgressValue(int currentValue, int maximumValue = 100)
         {
+#if LINUX
+            if (OperatingSystem.IsLinux())
+            {
+                if (Enabled && maximumValue > 0)
+                {
+                    LinuxShell.SetLauncherProgress((double)currentValue.Clamp(0, maximumValue) / maximumValue, true);
+                }
+
+                return;
+            }
+#endif
+
             SetProgressValue(MainWindowHandle, currentValue, maximumValue);
         }
 
@@ -197,6 +210,18 @@ namespace ShareX.HelpersLib
 
         public static void SetProgressState(TaskbarProgressBarStatus state)
         {
+#if LINUX
+            if (OperatingSystem.IsLinux())
+            {
+                if (Enabled || state == TaskbarProgressBarStatus.NoProgress)
+                {
+                    LinuxShell.SetLauncherProgress(null, state != TaskbarProgressBarStatus.NoProgress);
+                }
+
+                return;
+            }
+#endif
+
             SetProgressState(MainWindowHandle, state);
         }
 

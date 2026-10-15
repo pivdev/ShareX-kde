@@ -38,6 +38,8 @@ namespace ShareX.HelpersLib
 
         public static void CreateRegistry(string path, string name, string value, RegistryHive root = RegistryHive.CurrentUser)
         {
+            if (!OperatingSystem.IsWindows()) return;
+
             using (RegistryKey rk = RegistryKey.OpenBaseKey(root, RegistryView.Default).CreateSubKey(path))
             {
                 if (rk != null)
@@ -54,6 +56,8 @@ namespace ShareX.HelpersLib
 
         public static void CreateRegistry(string path, string name, int value, RegistryHive root = RegistryHive.CurrentUser)
         {
+            if (!OperatingSystem.IsWindows()) return;
+
             using (RegistryKey rk = RegistryKey.OpenBaseKey(root, RegistryView.Default).CreateSubKey(path))
             {
                 if (rk != null)
@@ -65,7 +69,7 @@ namespace ShareX.HelpersLib
 
         public static void RemoveRegistry(string path, RegistryHive root = RegistryHive.CurrentUser)
         {
-            if (!string.IsNullOrEmpty(path))
+            if (!string.IsNullOrEmpty(path) && OperatingSystem.IsWindows())
             {
                 using (RegistryKey rk = RegistryKey.OpenBaseKey(root, RegistryView.Default))
                 {
@@ -76,6 +80,8 @@ namespace ShareX.HelpersLib
 
         public static object GetValue(string path, string name = null, RegistryHive root = RegistryHive.CurrentUser, RegistryView view = RegistryView.Default)
         {
+            if (!OperatingSystem.IsWindows()) return null;
+
             try
             {
                 using (RegistryKey baseKey = RegistryKey.OpenBaseKey(root, view))
@@ -114,6 +120,12 @@ namespace ShareX.HelpersLib
 
         public static string SearchProgramPath(string fileName)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                // On Linux look the program up in PATH, also trying the name without a Windows ".exe" extension.
+                return LinuxHelpers.FindExecutable(fileName) ?? LinuxHelpers.FindExecutable(Path.GetFileNameWithoutExtension(fileName));
+            }
+
             // First method: HKEY_CLASSES_ROOT\Applications\{fileName}\shell\{command}\command
 
             string[] commands = new string[] { "open", "edit" };

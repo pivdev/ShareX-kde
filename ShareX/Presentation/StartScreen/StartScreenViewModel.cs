@@ -185,7 +185,7 @@ public sealed class StartScreenViewModel : INotifyPropertyChanged, IDisposable
 
     private void RefreshStartWithWindows()
     {
-        _startWithWindowsText = Strings.ApplicationSettingsForm_cbStartWithWindows_Text;
+        _startWithWindowsText = IntegrationHelpers.StartWithSystemText;
         _startWithWindowsEnabled = false;
 
         try

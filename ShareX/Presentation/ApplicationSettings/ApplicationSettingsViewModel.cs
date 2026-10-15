@@ -159,6 +159,12 @@ public sealed class ApplicationSettingsViewModel : INotifyPropertyChanged, IDisp
         }
     }
 
+    public bool SendToMenuVisible => WindowsIntegrationVisible && IntegrationHelpers.SendToMenuSupported;
+
+    public string IntegrationSectionTitle => IntegrationHelpers.IntegrationSectionTitle;
+    public string ShellContextMenuText => IntegrationHelpers.ShellContextMenuText;
+    public string EditWithShareXText => IntegrationHelpers.EditShellContextMenuText;
+
     public bool SteamIntegrationVisible
     {
         get
@@ -908,7 +914,7 @@ public sealed class ApplicationSettingsViewModel : INotifyPropertyChanged, IDisp
 
     private void RefreshStartWithWindows()
     {
-        StartWithWindowsText = Strings.ApplicationSettingsForm_cbStartWithWindows_Text;
+        StartWithWindowsText = IntegrationHelpers.StartWithSystemText;
         StartWithWindowsEnabled = false;
 
         try

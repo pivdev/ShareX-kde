@@ -1,0 +1,29 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=ShareX
+GenericName=Screen Capture Tool
+Comment=Screen capture, file sharing and productivity tool
+Icon=sharex
+# @EXEC@ is replaced by install.sh with the absolute path of the published ShareX binary.
+# KWin only grants org.kde.KWin.ScreenShot2 to clients whose desktop file declares it below and whose
+# Exec resolves to the executable of the running process, so this must not be a wrapper script.
+Exec=@EXEC@ %F
+TryExec=@EXEC@
+Terminal=false
+StartupNotify=true
+StartupWMClass=ShareX
+SingleMainWindow=true
+Categories=Utility;Graphics;
+Keywords=screenshot;screen capture;screen recording;upload;share;image editor;
+MimeType=application/x-sharex-custom-uploader;application/x-sharex-image-effect;
+X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
+Actions=RectangleRegion;PrintScreen;
+
+[Desktop Action RectangleRegion]
+Name=Capture region
+Exec=@EXEC@ -RectangleRegion
+
+[Desktop Action PrintScreen]
+Name=Capture entire screen
+Exec=@EXEC@ -PrintScreen

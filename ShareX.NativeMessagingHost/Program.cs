@@ -25,6 +25,7 @@
 
 using ShareX.HelpersLib;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using MessageBox = ShareX.AvaloniaUI.MessageBox;
@@ -49,11 +50,19 @@ namespace ShareX.NativeMessagingHost
                     {
                         host.Write(input);
 
-                        string filePath = FileHelpers.GetAbsolutePath("ShareX.exe");
                         string tempFilePath = FileHelpers.GetTempFilePath("json");
                         File.WriteAllText(tempFilePath, input, Encoding.UTF8);
-                        string argument = $"-NativeMessagingInput \"{tempFilePath}\"";
-                        NativeMethods.CreateProcess(filePath, argument, CreateProcessFlags.CREATE_BREAKAWAY_FROM_JOB);
+
+                        if (OperatingSystem.IsLinux())
+                        {
+                            StartShareXDetached(FileHelpers.GetAbsolutePath("ShareX"), "-NativeMessagingInput", tempFilePath);
+                        }
+                        else
+                        {
+                            string filePath = FileHelpers.GetAbsolutePath("ShareX.exe");
+                            string argument = $"-NativeMessagingInput \"{tempFilePath}\"";
+                            NativeMethods.CreateProcess(filePath, argument, CreateProcessFlags.CREATE_BREAKAWAY_FROM_JOB);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -65,6 +74,30 @@ namespace ShareX.NativeMessagingHost
             {
                 MessageBox.Show("This executable is used to receive data from browser addon and send it to ShareX.",
                     "ShareX NativeMessagingHost", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        // Unix equivalent of CREATE_BREAKAWAY_FROM_JOB: browsers kill the host's process group when the port closes and
+        // wait on its stdio pipes, so start ShareX in a new session with stdio detached from the browser.
+        private static void StartShareXDetached(string filePath, params string[] arguments)
+        {
+            string script = LinuxHelpers.HasExecutable("setsid") ?
+                "exec setsid -f \"$0\" \"$@\" </dev/null >/dev/null 2>&1" :
+                "\"$0\" \"$@\" </dev/null >/dev/null 2>&1 &";
+
+            ProcessStartInfo psi = new ProcessStartInfo("/bin/sh") { UseShellExecute = false };
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add(script);
+            psi.ArgumentList.Add(filePath);
+
+            foreach (string argument in arguments)
+            {
+                psi.ArgumentList.Add(argument);
+            }
+
+            using (Process process = Process.Start(psi))
+            {
+                process?.WaitForExit(5000);
             }
         }
     }

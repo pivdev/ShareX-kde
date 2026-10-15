@@ -21,3 +21,7 @@
 *.csproj text eol=crlf
 *.cs text eol=crlf
 *.resx text eol=crlf
+
+# Linux scripts and desktop files must keep LF line endings
+*.sh text eol=lf
+*.desktop text eol=lf

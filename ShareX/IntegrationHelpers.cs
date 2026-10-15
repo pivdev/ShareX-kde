@@ -77,10 +77,31 @@ namespace ShareX
         private static readonly string ChromeHostManifestFilePath = FileHelpers.GetAbsolutePath("host-manifest-chrome.json");
         private static readonly string FirefoxHostManifestFilePath = FileHelpers.GetAbsolutePath("host-manifest-firefox.json");
 
+        // Linux replaces Windows-specific labels (not localized yet).
+        public static string IntegrationSectionTitle => OperatingSystem.IsLinux() ? "Desktop" : Strings.ApplicationSettingsWindow_Windows;
+
+        public static string StartWithSystemText => OperatingSystem.IsLinux() ? "Run ShareX when you log in" :
+            Strings.ApplicationSettingsForm_cbStartWithWindows_Text;
+
+        public static string ShellContextMenuText => OperatingSystem.IsLinux() ? "Show \"Upload with ShareX\" in the Dolphin context menu" :
+            Strings.ApplicationSettingsWindow_ShowUploadWithShareXButtonInWindowsExplorerContextMenu;
+
+        public static string EditShellContextMenuText => OperatingSystem.IsLinux() ? "Show \"Edit with ShareX\" in the Dolphin context menu for images" :
+            Strings.ApplicationSettingsWindow_ShowEditWithShareXButtonInWindowsExplorerContextMenu;
+
+        public static bool SendToMenuSupported => OperatingSystem.IsWindows();
+
         public static bool CheckShellContextMenuButton()
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxIntegration.CheckUploadServiceMenu();
+                }
+#endif
+
                 return RegistryHelpers.CheckStringValue(ShellExtMenuFilesCmd, null, ShellExtPath) &&
                     RegistryHelpers.CheckStringValue(ShellExtMenuDirectoryCmd, null, ShellExtPath);
             }
@@ -96,6 +117,14 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    LinuxIntegration.SetUploadServiceMenu(create);
+                    return;
+                }
+#endif
+
                 if (create)
                 {
                     UnregisterShellContextMenuButton();
@@ -133,6 +162,13 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxIntegration.CheckEditServiceMenu();
+                }
+#endif
+
                 return RegistryHelpers.CheckStringValue(ShellExtEditImageCmd, null, ShellExtEditPath);
             }
             catch (Exception e)
@@ -147,6 +183,14 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    LinuxIntegration.SetEditServiceMenu(create);
+                    return;
+                }
+#endif
+
                 if (create)
                 {
                     UnregisterEditShellContextMenuButton();
@@ -179,6 +223,13 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxIntegration.CheckFileTypes();
+                }
+#endif
+
                 return RegistryHelpers.CheckStringValue(ShellCustomUploaderExtensionPath, null, ShellCustomUploaderExtensionValue) &&
                     RegistryHelpers.CheckStringValue(ShellCustomUploaderCommandPath, null, ShellCustomUploaderCommandValue);
             }
@@ -194,6 +245,14 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    if (create) LinuxIntegration.RegisterFileTypes(); else LinuxIntegration.UnregisterFileTypes();
+                    return;
+                }
+#endif
+
                 if (create)
                 {
                     UnregisterCustomUploaderExtension();
@@ -230,6 +289,13 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxIntegration.CheckFileTypes();
+                }
+#endif
+
                 return RegistryHelpers.CheckStringValue(ShellImageEffectExtensionPath, null, ShellImageEffectExtensionValue) &&
                     RegistryHelpers.CheckStringValue(ShellImageEffectCommandPath, null, ShellImageEffectCommandValue);
             }
@@ -245,6 +311,15 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    // .sxcu and .sxie share one shared-mime-info package.
+                    if (create) LinuxIntegration.RegisterFileTypes(); else LinuxIntegration.UnregisterFileTypes();
+                    return;
+                }
+#endif
+
                 if (create)
                 {
                     UnregisterImageEffectExtension();
@@ -281,6 +356,13 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxIntegration.CheckChromeNativeMessaging();
+                }
+#endif
+
                 return RegistryHelpers.CheckStringValue(ChromeNativeMessagingHosts, null, ChromeHostManifestFilePath) && File.Exists(ChromeHostManifestFilePath);
             }
             catch (Exception e)
@@ -295,6 +377,14 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    LinuxIntegration.SetChromeNativeMessaging(create, ChromeHostManifestFilePath);
+                    return;
+                }
+#endif
+
                 if (create)
                 {
                     UnregisterChromeExtensionSupport();
@@ -325,6 +415,13 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxIntegration.CheckFirefoxNativeMessaging();
+                }
+#endif
+
                 return RegistryHelpers.CheckStringValue(FirefoxNativeMessagingHosts, null, FirefoxHostManifestFilePath) && File.Exists(FirefoxHostManifestFilePath);
             }
             catch (Exception e)
@@ -339,6 +436,14 @@ namespace ShareX
         {
             try
             {
+#if LINUX
+                if (OperatingSystem.IsLinux())
+                {
+                    LinuxIntegration.SetFirefoxNativeMessaging(create, FirefoxHostManifestFilePath);
+                    return;
+                }
+#endif
+
                 if (create)
                 {
                     UnregisterFirefoxAddonSupport();
@@ -367,11 +472,22 @@ namespace ShareX
 
         public static bool CheckSendToMenuButton()
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                // There is no "Send to" folder on Linux; the Dolphin service menu (CreateShellContextMenuButton) covers it.
+                return false;
+            }
+
             return ShortcutHelpers.CheckShortcut(Environment.SpecialFolder.SendTo, "ShareX", Environment.ProcessPath);
         }
 
         public static bool CreateSendToMenuButton(bool create)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return false;
+            }
+
             return ShortcutHelpers.SetShortcut(create, Environment.SpecialFolder.SendTo, "ShareX", Environment.ProcessPath);
         }
 
@@ -414,6 +530,14 @@ namespace ShareX
             CreateCustomUploaderExtension(false);
             CreateImageEffectExtension(false);
             CreateSendToMenuButton(false);
+#if LINUX
+            if (OperatingSystem.IsLinux())
+            {
+                CreateChromeExtensionSupport(false);
+                CreateFirefoxAddonSupport(false);
+                return;
+            }
+#endif
             UnregisterChromeExtensionSupport();
             UnregisterFirefoxAddonSupport();
         }

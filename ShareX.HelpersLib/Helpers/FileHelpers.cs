@@ -257,6 +257,14 @@ namespace ShareX.HelpersLib
             {
                 try
                 {
+#if LINUX
+                    if (OperatingSystem.IsLinux())
+                    {
+                        // UseShellExecute on Unix would execute files that have the executable bit set; always go through xdg-open.
+                        if (!LinuxShell.Open(filePath)) return false;
+                    }
+                    else
+#endif
                     using (Process process = new Process())
                     {
                         ProcessStartInfo psi = new ProcessStartInfo()
@@ -291,13 +299,20 @@ namespace ShareX.HelpersLib
         {
             if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
             {
-                if (!folderPath.EndsWith(@"\"))
+                if (!folderPath.EndsWith(Path.DirectorySeparatorChar))
                 {
-                    folderPath += @"\";
+                    folderPath += Path.DirectorySeparatorChar;
                 }
 
                 try
                 {
+#if LINUX
+                    if (OperatingSystem.IsLinux())
+                    {
+                        if (!LinuxShell.Open(folderPath)) return false;
+                    }
+                    else
+#endif
                     using (Process process = new Process())
                     {
                         ProcessStartInfo psi = new ProcessStartInfo()
@@ -334,7 +349,16 @@ namespace ShareX.HelpersLib
             {
                 try
                 {
-                    NativeMethods.OpenFolderAndSelectFile(filePath);
+#if LINUX
+                    if (OperatingSystem.IsLinux())
+                    {
+                        LinuxShell.ShowInFolder(filePath);
+                    }
+                    else
+#endif
+                    {
+                        NativeMethods.OpenFolderAndSelectFile(filePath);
+                    }
 
                     DebugHelper.WriteLine("Folder opened with file: " + filePath);
 
@@ -682,6 +706,12 @@ namespace ShareX.HelpersLib
                 {
                     if (sendToRecycleBin)
                     {
+#if LINUX
+                        if (OperatingSystem.IsLinux())
+                        {
+                            return LinuxShell.MoveToTrash(filePath);
+                        }
+#endif
                         FileSystem.DeleteFile(filePath, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
                     }
                     else

@@ -109,6 +109,15 @@ internal static class ApplicationLifecycle
         string executablePath = Environment.ProcessPath ??
             throw new InvalidOperationException("Unable to determine the ShareX executable path.");
 
+#if LINUX
+        if (OperatingSystem.IsLinux())
+        {
+            // Elevation (runas) has no equivalent here; restart the native executable (not the dotnet host) directly.
+            Process.Start(new ProcessStartInfo(LinuxShell.GetApplicationExecutablePath()) { UseShellExecute = false })?.Dispose();
+            return;
+        }
+#endif
+
         ProcessStartInfo startInfo = new()
         {
             FileName = executablePath,

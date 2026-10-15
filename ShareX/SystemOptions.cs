@@ -44,6 +44,12 @@ namespace ShareX
             DisableUpload = GetSystemOptionBoolean("DisableUpload");
             DisableLogging = GetSystemOptionBoolean("DisableLogging");
             PersonalPath = GetSystemOptionString("PersonalPath");
+
+            if (OperatingSystem.IsLinux())
+            {
+                // The built-in updater downloads and runs the Windows installer from upstream releases.
+                DisableUpdateCheck = true;
+            }
         }
 
         private static bool GetSystemOptionBoolean(string name)

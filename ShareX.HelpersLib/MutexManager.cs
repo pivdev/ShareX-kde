@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System;
+using System.IO;
 using System.Threading;
 
 namespace ShareX.HelpersLib
@@ -33,6 +34,30 @@ namespace ShareX.HelpersLib
         public bool HasHandle { get; private set; }
 
         private Mutex mutex;
+#if LINUX
+        // On Unix .NET named mutexes are scoped to the Unix session (getsid), so apps started from the desktop
+        // menu, autostart and a terminal would not see each other. Use an flock()-based lock file in the
+        // per-user runtime directory instead; the kernel releases it automatically if the process dies.
+        private FileStream lockFile;
+
+        private static string GetLockFilePath(string mutexName)
+        {
+            return Path.Combine(LinuxShell.XdgRuntimeDir, $"sharex-{FileHelpers.SanitizeFileName(mutexName)}.lock");
+        }
+
+        private static FileStream TryAcquireLockFile(string mutexName)
+        {
+            try
+            {
+                // FileShare.None makes .NET take an exclusive flock() on the file.
+                return new FileStream(GetLockFilePath(mutexName), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.None);
+            }
+            catch (IOException)
+            {
+                return null;
+            }
+        }
+#endif
 
         public MutexManager(string mutexName) : this(mutexName, Timeout.Infinite)
         {
@@ -40,6 +65,26 @@ namespace ShareX.HelpersLib
 
         public MutexManager(string mutexName, int timeout)
         {
+#if LINUX
+            if (OperatingSystem.IsLinux())
+            {
+                long start = Environment.TickCount64;
+
+                while ((lockFile = TryAcquireLockFile(mutexName)) == null)
+                {
+                    if (timeout != Timeout.Infinite && Environment.TickCount64 - start >= timeout)
+                    {
+                        break;
+                    }
+
+                    Thread.Sleep(50);
+                }
+
+                HasHandle = lockFile != null;
+                return;
+            }
+#endif
+
             mutex = new Mutex(false, mutexName);
 
             try
@@ -54,6 +99,16 @@ namespace ShareX.HelpersLib
 
         public static bool IsRunning(string mutexName)
         {
+#if LINUX
+            if (OperatingSystem.IsLinux())
+            {
+                using (FileStream stream = TryAcquireLockFile(mutexName))
+                {
+                    return stream == null;
+                }
+            }
+#endif
+
             try
             {
                 using (Mutex mutex = new Mutex(false, mutexName, out bool createdNew))
@@ -70,6 +125,14 @@ namespace ShareX.HelpersLib
 
         public void Dispose()
         {
+#if LINUX
+            if (lockFile != null)
+            {
+                lockFile.Dispose();
+                lockFile = null;
+            }
+#endif
+
             if (mutex != null)
             {
                 if (HasHandle)

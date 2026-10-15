@@ -41,11 +41,23 @@ namespace ShareX.HelpersLib
 
         public static bool Clear()
         {
-            try { return AvaloniaClipboard.Clear(); }
+            try
+            {
+#if LINUX
+                if (WaylandClipboard.IsAvailable) return WaylandClipboard.Clear();
+#endif
+                return AvaloniaClipboard.Clear();
+            }
             catch (Exception e) { DebugHelper.WriteException(e, "Clipboard clear failed."); return false; }
         }
 
-        public static ClipboardData CaptureData() => AvaloniaClipboard.Capture();
+        public static ClipboardData CaptureData()
+        {
+#if LINUX
+            if (WaylandClipboard.IsAvailable) return WaylandClipboard.Capture();
+#endif
+            return AvaloniaClipboard.Capture();
+        }
 
         public static Bitmap ConvertClipboardDibToBitmap(byte[] data)
         {
@@ -60,7 +72,13 @@ namespace ShareX.HelpersLib
         public static bool CopyText(string text)
         {
             if (string.IsNullOrEmpty(text)) return false;
-            try { return AvaloniaClipboard.SetText(text); }
+            try
+            {
+#if LINUX
+                if (WaylandClipboard.IsAvailable) return WaylandClipboard.SetText(text);
+#endif
+                return AvaloniaClipboard.SetText(text);
+            }
             catch (Exception e) { DebugHelper.WriteException(e, "Clipboard copy text failed."); return false; }
         }
 
@@ -71,6 +89,9 @@ namespace ShareX.HelpersLib
             {
                 using MemoryStream png = new();
                 img.Save(png, ImageFormat.Png);
+#if LINUX
+                if (WaylandClipboard.IsAvailable) return WaylandClipboard.SetImage(png.ToArray());
+#endif
                 byte[] dib;
                 if (HelpersOptions.UseAlternativeClipboardCopyImage && !HelpersOptions.DefaultCopyImageFillBackground)
                     dib = ClipboardHelpersEx.ConvertToDib(img);
@@ -100,7 +121,13 @@ namespace ShareX.HelpersLib
         public static bool CopyFile(string[] paths)
         {
             if (paths == null || paths.Length == 0) return false;
-            try { return AvaloniaClipboard.SetFiles(paths); }
+            try
+            {
+#if LINUX
+                if (WaylandClipboard.IsAvailable) return WaylandClipboard.SetFiles(paths);
+#endif
+                return AvaloniaClipboard.SetFiles(paths);
+            }
             catch (Exception e) { DebugHelper.WriteException(e, "Clipboard copy file failed."); return false; }
         }
 
@@ -147,6 +174,13 @@ namespace ShareX.HelpersLib
         {
             try
             {
+#if LINUX
+                if (WaylandClipboard.IsAvailable)
+                {
+                    byte[] image = WaylandClipboard.GetImage();
+                    return image != null ? SkiaImageHelpers.ByteArrayToBitmap(image) : null;
+                }
+#endif
                 byte[] png = AvaloniaClipboard.GetImage();
                 if (png != null) return SkiaImageHelpers.ByteArrayToBitmap(png);
                 ClipboardData data = CaptureData();
@@ -166,13 +200,25 @@ namespace ShareX.HelpersLib
 
         public static string GetText(bool checkContainsText = false)
         {
-            try { return AvaloniaClipboard.GetText(); }
+            try
+            {
+#if LINUX
+                if (WaylandClipboard.IsAvailable) return WaylandClipboard.GetText();
+#endif
+                return AvaloniaClipboard.GetText();
+            }
             catch (Exception e) { DebugHelper.WriteException(e, "Clipboard get text failed."); return null; }
         }
 
         public static string[] GetFileDropList(bool checkContainsFileDropList = false)
         {
-            try { return AvaloniaClipboard.GetFiles(); }
+            try
+            {
+#if LINUX
+                if (WaylandClipboard.IsAvailable) return WaylandClipboard.GetFiles();
+#endif
+                return AvaloniaClipboard.GetFiles();
+            }
             catch (Exception e) { DebugHelper.WriteException(e, "Clipboard get files failed."); return null; }
         }
 
@@ -237,7 +283,23 @@ namespace ShareX.HelpersLib
 
         private static bool Contains(string format)
         {
-            try { return AvaloniaClipboard.Contains(format); }
+            try
+            {
+#if LINUX
+                if (WaylandClipboard.IsAvailable)
+                {
+                    string[] types = WaylandClipboard.GetTypes();
+                    return format switch
+                    {
+                        ClipboardDataFormats.Text => WaylandClipboard.ContainsText(types),
+                        ClipboardDataFormats.FileDrop => WaylandClipboard.ContainsFiles(types),
+                        ClipboardDataFormats.Bitmap => WaylandClipboard.ContainsImage(types),
+                        _ => types.Contains(format, StringComparer.OrdinalIgnoreCase)
+                    };
+                }
+#endif
+                return AvaloniaClipboard.Contains(format);
+            }
             catch (Exception e) { DebugHelper.WriteException(e); return false; }
         }
     }

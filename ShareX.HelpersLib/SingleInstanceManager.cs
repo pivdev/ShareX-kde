@@ -57,6 +57,14 @@ namespace ShareX.HelpersLib
         {
             MutexName = mutexName;
             PipeName = pipeName;
+#if LINUX
+            if (OperatingSystem.IsLinux())
+            {
+                // .NET named pipes are Unix domain sockets on Linux. Keep the socket in the per-user runtime
+                // directory (mode 0700) instead of the shared /tmp, which also takes the place of the pipe ACL.
+                PipeName = Path.Combine(LinuxShell.XdgRuntimeDir, $"sharex-{FileHelpers.SanitizeFileName(pipeName)}.sock");
+            }
+#endif
             IsSingleInstance = isSingleInstance;
 
             mutex = new MutexManager(MutexName, 0);
@@ -93,14 +101,7 @@ namespace ShareX.HelpersLib
 
                 try
                 {
-                    PipeSecurity pipeSecurity = new PipeSecurity();
-
-                    using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-                    {
-                        pipeSecurity.AddAccessRule(new PipeAccessRule(identity.User, PipeAccessRights.ReadWrite, AccessControlType.Allow));
-                    }
-
-                    using (NamedPipeServerStream namedPipeServer = NamedPipeServerStreamAcl.Create(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 0, 0, pipeSecurity))
+                    using (NamedPipeServerStream namedPipeServer = CreatePipeServer())
                     {
                         namedPipeServerCreated = true;
 
@@ -139,6 +140,25 @@ namespace ShareX.HelpersLib
                     }
                 }
             }
+        }
+
+        private NamedPipeServerStream CreatePipeServer()
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                // Pipe ACLs are Windows only. On Unix CurrentUserOnly restricts the socket to the current user.
+                return new NamedPipeServerStream(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+                    PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            }
+
+            PipeSecurity pipeSecurity = new PipeSecurity();
+
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+            {
+                pipeSecurity.AddAccessRule(new PipeAccessRule(identity.User, PipeAccessRights.ReadWrite, AccessControlType.Allow));
+            }
+
+            return NamedPipeServerStreamAcl.Create(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 0, 0, pipeSecurity);
         }
 
         private void RedirectArgumentsToFirstInstance(string[] args)
