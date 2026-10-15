@@ -86,7 +86,7 @@ namespace ShareX.HelpersLib
 
         protected bool Run(string path, string args)
         {
-            if (!string.Equals(Path.GetExtension(path), ".exe", StringComparison.OrdinalIgnoreCase))
+            if (OperatingSystem.IsWindows() && !string.Equals(Path.GetExtension(path), ".exe", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -105,6 +105,13 @@ namespace ShareX.HelpersLib
         public override void Close()
         {
             StopRequested = true;
+
+            // With streamed input, stdin carries frames; the writer ends the stream when StopRequested is set.
+            if (StandardInputWriter != null && closeTryCount < 2)
+            {
+                closeTryCount++;
+                return;
+            }
 
             if (IsProcessRunning && process != null)
             {

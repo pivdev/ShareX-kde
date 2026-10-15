@@ -200,6 +200,14 @@ namespace ShareX.HelpersLib
 
         private static async Task<SKBitmap> KWinCaptureAsync(string method, string signature, string firstArgument, Dictionary<string, VariantValue> options)
         {
+            (Dictionary<string, VariantValue> metadata, byte[] data) = await KWinCaptureRawAsync(method, signature,
+                (ref MessageWriter w) => { if (firstArgument != null) w.WriteString(firstArgument); }, options).ConfigureAwait(false);
+            return DecodeKWinImage(metadata, data);
+        }
+
+        private static async Task<(Dictionary<string, VariantValue> Metadata, byte[] Data)> KWinCaptureRawAsync(string method, string signature,
+            LinuxDBus.BodyWriter leadingArguments, Dictionary<string, VariantValue> options)
+        {
             (FileStream readStream, SafeFileHandle writeHandle) = LinuxDBus.CreatePipe();
             using (readStream)
             {
@@ -216,7 +224,7 @@ namespace ShareX.HelpersLib
                     metadata = await LinuxDBus.CallAsync(KWinService, KWinScreenShotPath, KWinScreenShotInterface, method, signature,
                         (ref MessageWriter w) =>
                         {
-                            if (firstArgument != null) w.WriteString(firstArgument);
+                            leadingArguments?.Invoke(ref w);
                             LinuxDBus.WriteOptions(ref w, options);
                             w.WriteHandle(writeHandle);
                         },
@@ -224,9 +232,84 @@ namespace ShareX.HelpersLib
                 }
                 // Our copy of the write end is closed now, so the read completes once KWin finishes writing.
 
-                byte[] data = await readTask.ConfigureAwait(false);
-                return DecodeKWinImage(metadata, data);
+                return (metadata, await readTask.ConfigureAwait(false));
             }
+        }
+
+        /// <summary>Maps a rectangle in ShareX desktop coordinates to KWin's logical compositor coordinates.</summary>
+        public static Rectangle ToCompositorRectangle(Rectangle rect)
+        {
+            if (!KWinBridge.IsAvailable) return rect;
+
+            KWinState state = KWinBridge.Query(0);
+            if (state.Outputs.Count == 0) return rect;
+
+            Rectangle compositorBounds = state.Outputs.Select(x => x.Bounds).Aggregate(Rectangle.Union);
+            Rectangle desktopBounds = CaptureHelpers.GetScreenBounds();
+            if (compositorBounds == desktopBounds || desktopBounds.Width <= 0 || desktopBounds.Height <= 0) return rect;
+
+            double scaleX = (double)compositorBounds.Width / desktopBounds.Width;
+            double scaleY = (double)compositorBounds.Height / desktopBounds.Height;
+            return Rectangle.FromLTRB(
+                compositorBounds.X + (int)Math.Floor((rect.Left - desktopBounds.X) * scaleX),
+                compositorBounds.Y + (int)Math.Floor((rect.Top - desktopBounds.Y) * scaleY),
+                compositorBounds.X + (int)Math.Ceiling((rect.Right - desktopBounds.X) * scaleX),
+                compositorBounds.Y + (int)Math.Ceiling((rect.Bottom - desktopBounds.Y) * scaleY));
+        }
+
+        /// <summary>
+        /// Captures an area (KWin logical coordinates) and returns tightly packed BGRA pixels of exactly
+        /// <paramref name="outputSize"/>, as used for rawvideo encoder input. Requires KWin ScreenShot2 access.
+        /// </summary>
+        public static byte[] CaptureAreaRaw(Rectangle compositorArea, Size outputSize, bool includeCursor)
+        {
+            (Dictionary<string, VariantValue> metadata, byte[] data) = LinuxDBus.RunSync(() => KWinCaptureRawAsync("CaptureArea", "iiuua{sv}h",
+                (ref MessageWriter w) =>
+                {
+                    w.WriteInt32(compositorArea.X);
+                    w.WriteInt32(compositorArea.Y);
+                    w.WriteUInt32((uint)compositorArea.Width);
+                    w.WriteUInt32((uint)compositorArea.Height);
+                },
+                new Dictionary<string, VariantValue>
+                {
+                    ["include-cursor"] = includeCursor,
+                    ["native-resolution"] = false
+                }));
+
+            int width = (int)metadata["width"].GetUInt32();
+            int height = (int)metadata["height"].GetUInt32();
+            int stride = (int)metadata["stride"].GetUInt32();
+            uint format = metadata["format"].GetUInt32();
+            int rowBytes = outputSize.Width * 4;
+
+            // Fast path: same size, BGRA layout (screen content is opaque, so premultiplied == straight alpha).
+            if (width == outputSize.Width && height == outputSize.Height && (format == 4 || format == 5 || format == 6))
+            {
+                if (stride == rowBytes && data.Length >= rowBytes * height)
+                {
+                    if (data.Length == rowBytes * height) return data;
+                    return data.AsSpan(0, rowBytes * height).ToArray();
+                }
+
+                byte[] packed = new byte[rowBytes * height];
+                for (int y = 0; y < height; y++)
+                {
+                    Buffer.BlockCopy(data, y * stride, packed, y * rowBytes, rowBytes);
+                }
+                return packed;
+            }
+
+            using SKBitmap source = DecodeKWinImage(metadata, data);
+            using SKBitmap resized = source.Resize(new SKImageInfo(outputSize.Width, outputSize.Height, SKColorType.Bgra8888, SKAlphaType.Premul),
+                new SKSamplingOptions(SKCubicResampler.Mitchell));
+            byte[] result = new byte[rowBytes * outputSize.Height];
+            using SKPixmap pixmap = resized.PeekPixels();
+            for (int y = 0; y < outputSize.Height; y++)
+            {
+                System.Runtime.InteropServices.Marshal.Copy(pixmap.GetPixels() + (y * pixmap.RowBytes), result, y * rowBytes, rowBytes);
+            }
+            return result;
         }
 
         private static SKBitmap DecodeKWinImage(Dictionary<string, VariantValue> metadata, byte[] data)

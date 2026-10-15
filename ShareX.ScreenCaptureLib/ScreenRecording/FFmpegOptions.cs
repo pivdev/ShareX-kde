@@ -33,7 +33,7 @@ namespace ShareX.ScreenCaptureLib
         // General
         public bool OverrideCLIPath { get; set; } = false;
         public string CLIPath { get; set; } = "";
-        public string VideoSource { get; set; } = FFmpegCaptureDevice.GDIGrab.Value;
+        public string VideoSource { get; set; } = FFmpegCaptureDevice.DefaultScreenSource.Value;
         public string AudioSource { get; set; } = FFmpegCaptureDevice.None.Value;
         public FFmpegVideoCodec VideoCodec { get; set; } = FFmpegVideoCodec.libx264;
         public FFmpegAudioCodec AudioCodec { get; set; } = FFmpegAudioCodec.libvoaacenc;
@@ -73,6 +73,11 @@ namespace ShareX.ScreenCaptureLib
                 if (OverrideCLIPath && !string.IsNullOrEmpty(CLIPath))
                 {
                     return FileHelpers.GetAbsolutePath(CLIPath);
+                }
+
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxHelpers.FindExecutable("ffmpeg") ?? "/usr/bin/ffmpeg";
                 }
 
                 return FileHelpers.GetAbsolutePath("ffmpeg.exe");
@@ -132,7 +137,17 @@ namespace ShareX.ScreenCaptureLib
 
         public bool IsVideoSourceSelected => !string.IsNullOrEmpty(VideoSource);
 
-        public bool IsAudioSourceSelected => !string.IsNullOrEmpty(AudioSource) && (!IsVideoSourceSelected || !IsAnimatedImage);
+        // Audio capture is not implemented on Linux yet (the configured sources are DirectShow devices).
+        public bool IsAudioSourceSelected => !OperatingSystem.IsLinux() && !string.IsNullOrEmpty(AudioSource) && (!IsVideoSourceSelected || !IsAnimatedImage);
+
+        /// <summary>
+        /// On Linux every screen source records through KWin; Windows-only screen sources saved in older configs map to it.
+        /// </summary>
+        public bool IsLinuxScreenSource => OperatingSystem.IsLinux() && IsVideoSourceSelected &&
+            (VideoSource.Equals(FFmpegCaptureDevice.KWinGrab.Value, StringComparison.OrdinalIgnoreCase) ||
+            VideoSource.Equals(FFmpegCaptureDevice.GDIGrab.Value, StringComparison.OrdinalIgnoreCase) ||
+            VideoSource.Equals(FFmpegCaptureDevice.DDAGrab.Value, StringComparison.OrdinalIgnoreCase) ||
+            VideoSource.Equals(FFmpegCaptureDevice.ScreenCaptureRecorder.Value, StringComparison.OrdinalIgnoreCase));
 
         public bool IsAnimatedImage => VideoCodec == FFmpegVideoCodec.gif || VideoCodec == FFmpegVideoCodec.libwebp || VideoCodec == FFmpegVideoCodec.apng;
 

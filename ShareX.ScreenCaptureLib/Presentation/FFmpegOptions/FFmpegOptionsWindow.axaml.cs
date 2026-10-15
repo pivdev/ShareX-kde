@@ -365,7 +365,7 @@ public partial class FFmpegOptionsWindow : Window
         Exception? discoveryError = null;
         string ffmpegPath = Options.FFmpeg.FFmpegPath;
 
-        if (File.Exists(ffmpegPath))
+        if (OperatingSystem.IsWindows() && File.Exists(ffmpegPath))
         {
             await Task.Run(() =>
             {
@@ -387,11 +387,9 @@ public partial class FFmpegOptionsWindow : Window
         }
 
         FFmpegCaptureDevice noSource = new(FFmpegCaptureDevice.None.Value, Localization.Strings.FFmpegOptionsWindow_None);
-        List<FFmpegCaptureDevice> videoSources =
-        [
-            noSource,
-            new(FFmpegCaptureDevice.GDIGrab.Value, Localization.Strings.FFmpegOptionsWindow_Source_GDI)
-        ];
+        List<FFmpegCaptureDevice> videoSources = OperatingSystem.IsLinux()
+            ? [noSource, FFmpegCaptureDevice.KWinGrab]
+            : [noSource, new(FFmpegCaptureDevice.GDIGrab.Value, Localization.Strings.FFmpegOptionsWindow_Source_GDI)];
 
         if (Helpers.IsWindows10OrGreater())
         {
@@ -413,7 +411,7 @@ public partial class FFmpegOptionsWindow : Window
         }
         else if (!videoSources.Any(x => EqualsSource(x, options.VideoSource)))
         {
-            options.VideoSource = FFmpegCaptureDevice.GDIGrab.Value;
+            options.VideoSource = FFmpegCaptureDevice.DefaultScreenSource.Value;
         }
 
         if (selectRecorderDevices && audioSources.Any(x => EqualsSource(x, FFmpegCaptureDevice.VirtualAudioCapturer.Value)))

@@ -687,7 +687,7 @@ public partial class ScreenRecordWindow : Window, IDisposable
     private void ApplyToolWindowStyle()
     {
         IntPtr handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero)
+        if (handle == IntPtr.Zero || !OperatingSystem.IsWindows())
         {
             return;
         }
@@ -713,6 +713,23 @@ public partial class ScreenRecordWindow : Window, IDisposable
         int toolbarTop = frameHeight + ToolbarGapPixels;
         int toolbarWidth = (int)Math.Ceiling(DisplayedToolbarWidth * _windowScaling);
         int toolbarHeight = (int)Math.Ceiling(ToolbarHeight * _windowScaling);
+
+        if (OperatingSystem.IsLinux())
+        {
+            // X Shape extension: keep only the 1px frame around the recording area and the toolbar,
+            // so the recorded area stays visible and clickable and the frame itself is outside the capture.
+            int left = _frameLeftPixels;
+            DrawingRectangle[] shape =
+            [
+                new(left, 0, frameWidth, BorderPixels),
+                new(left, frameHeight - BorderPixels, frameWidth, BorderPixels),
+                new(left, BorderPixels, BorderPixels, frameHeight - (BorderPixels * 2)),
+                new(left + frameWidth - BorderPixels, BorderPixels, BorderPixels, frameHeight - (BorderPixels * 2)),
+                new(_toolbarLeftPixels, toolbarTop, toolbarWidth, toolbarHeight)
+            ];
+            X11Shape.SetWindowShape(handle, shape);
+            return;
+        }
 
         IntPtr windowRegion = CreateRectRgn(_frameLeftPixels, 0, _frameLeftPixels + frameWidth, frameHeight);
         IntPtr apertureRegion = CreateRectRgn(

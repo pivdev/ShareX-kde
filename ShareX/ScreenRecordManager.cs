@@ -96,7 +96,8 @@ namespace ShareX
 
         private static async Task StartRecording(ScreenRecordOutput outputType, TaskSettings taskSettings, ScreenRecordStartMethod startMethod = ScreenRecordStartMethod.Region)
         {
-            bool useNative = taskSettings.CaptureSettings.ScreenRecordUseNative && outputType != ScreenRecordOutput.GIF;
+            // The native recorder uses Windows Graphics Capture and Media Foundation; Linux records through FFmpeg.
+            bool useNative = !OperatingSystem.IsLinux() && taskSettings.CaptureSettings.ScreenRecordUseNative && outputType != ScreenRecordOutput.GIF;
             if (outputType == ScreenRecordOutput.GIF)
             {
                 taskSettings.CaptureSettings.FFmpegOptions.VideoCodec = FFmpegVideoCodec.gif;

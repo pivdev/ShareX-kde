@@ -49,7 +49,7 @@ namespace ShareX.ScreenCaptureLib
         {
             string commands;
 
-            if (IsRecording && !string.IsNullOrEmpty(FFmpeg.VideoSource) &&
+            if (IsRecording && !OperatingSystem.IsLinux() && !string.IsNullOrEmpty(FFmpeg.VideoSource) &&
                 FFmpeg.VideoSource.Equals(FFmpegCaptureDevice.ScreenCaptureRecorder.Value, StringComparison.OrdinalIgnoreCase))
             {
                 // https://github.com/rdp/screen-capture-recorder-to-video-windows-free
@@ -97,7 +97,19 @@ namespace ShareX.ScreenCaptureLib
             {
                 if (FFmpeg.IsVideoSourceSelected)
                 {
-                    if (FFmpeg.VideoSource.Equals(FFmpegCaptureDevice.GDIGrab.Value, StringComparison.OrdinalIgnoreCase))
+                    if (FFmpeg.IsLinuxScreenSource)
+                    {
+                        string width = isCustom ? "$area_width$" : CaptureArea.Width.ToString();
+                        string height = isCustom ? "$area_height$" : CaptureArea.Height.ToString();
+
+                        // Frames are written to stdin by LinuxFramePump.
+                        args.Append("-f rawvideo ");
+                        args.Append("-pix_fmt bgra ");
+                        args.Append($"-video_size {width}x{height} ");
+                        args.Append($"-framerate {framerate} ");
+                        args.Append("-i pipe:0 ");
+                    }
+                    else if (FFmpeg.VideoSource.Equals(FFmpegCaptureDevice.GDIGrab.Value, StringComparison.OrdinalIgnoreCase))
                     {
                         if (FFmpeg.IsAudioSourceSelected)
                         {

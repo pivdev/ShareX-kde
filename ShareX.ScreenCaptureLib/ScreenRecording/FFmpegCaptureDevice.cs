@@ -23,6 +23,8 @@
 
 #endregion License Information (GPL v3)
 
+using System;
+
 namespace ShareX.ScreenCaptureLib
 {
     public class FFmpegCaptureDevice
@@ -41,6 +43,10 @@ namespace ShareX.ScreenCaptureLib
         public static FFmpegCaptureDevice DDAGrab { get; } = new FFmpegCaptureDevice("ddagrab", "ddagrab (Desktop Duplication API)");
         public static FFmpegCaptureDevice ScreenCaptureRecorder { get; } = new FFmpegCaptureDevice("screen-capture-recorder", "dshow (screen-capture-recorder)");
         public static FFmpegCaptureDevice VirtualAudioCapturer { get; } = new FFmpegCaptureDevice("virtual-audio-capturer", "dshow (virtual-audio-capturer)");
+        // Linux: frames are captured through KWin's ScreenShot2 API and streamed to FFmpeg as raw video.
+        public static FFmpegCaptureDevice KWinGrab { get; } = new FFmpegCaptureDevice("kwingrab", "KWin screen capture");
+
+        public static FFmpegCaptureDevice DefaultScreenSource => OperatingSystem.IsLinux() ? KWinGrab : GDIGrab;
 
         public override string ToString()
         {

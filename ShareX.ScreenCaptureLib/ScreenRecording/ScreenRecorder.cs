@@ -151,7 +151,14 @@ namespace ShareX.ScreenCaptureLib
 
                 if (OutputType == ScreenRecordOutput.FFmpeg)
                 {
-                    ffmpeg.Run(Options.GetFFmpegCommands());
+                    if (Options.IsRecording && Options.FFmpeg.IsLinuxScreenSource)
+                    {
+                        RecordUsingLinuxFramePump();
+                    }
+                    else
+                    {
+                        ffmpeg.Run(Options.GetFFmpegCommands());
+                    }
                 }
                 else
                 {
@@ -161,6 +168,24 @@ namespace ShareX.ScreenCaptureLib
             }
 
             IsRecording = false;
+        }
+
+        private void RecordUsingLinuxFramePump()
+        {
+            LinuxFramePump pump = new LinuxFramePump(CaptureRectangle, FPS, Options.DrawCursor);
+
+            // FFmpeg reads frames from stdin, so it never prints its "Press [q]" prompt; signal the start from the first frame.
+            ffmpeg.StandardInputWriter = input => pump.Run(input, () => stopRequested || ffmpeg.StopRequested, OnRecordingStarted);
+
+            try
+            {
+                ffmpeg.Run(Options.GetFFmpegCommands());
+            }
+            finally
+            {
+                // The same FFmpeg manager is reused for the encoding passes, which read from files.
+                ffmpeg.StandardInputWriter = null;
+            }
         }
 
         private void RecordUsingCache()

@@ -37,6 +37,12 @@ namespace ShareX.HelpersLib
 
         public bool IsProcessRunning { get; private set; }
 
+        /// <summary>
+        /// When set, runs on a background thread with the process's raw standard input stream (e.g. to stream video frames).
+        /// The callback must close the stream when it is done.
+        /// </summary>
+        public Action<Stream> StandardInputWriter { get; set; }
+
         protected Process process;
 
         public virtual int Open(string path, string args = null)
@@ -70,10 +76,30 @@ namespace ShareX.HelpersLib
                     if (psi.RedirectStandardOutput) process.BeginOutputReadLine();
                     if (psi.RedirectStandardError) process.BeginErrorReadLine();
 
+                    System.Threading.Tasks.Task inputTask = null;
+                    Action<Stream> inputWriter = StandardInputWriter;
+                    if (inputWriter != null)
+                    {
+                        Stream input = process.StandardInput.BaseStream;
+                        inputTask = System.Threading.Tasks.Task.Run(() =>
+                        {
+                            try
+                            {
+                                inputWriter(input);
+                            }
+                            catch (Exception e)
+                            {
+                                DebugHelper.WriteException(e, "CLI standard input writer failed.");
+                                try { input.Close(); } catch { }
+                            }
+                        });
+                    }
+
                     try
                     {
                         IsProcessRunning = true;
                         process.WaitForExit();
+                        inputTask?.Wait(5000);
                     }
                     finally
                     {

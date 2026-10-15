@@ -27,6 +27,7 @@ Re-run `install.sh` after pulling changes.
 | Autostart, file types, Dolphin menu, browser extension | `~/.config/autostart`, shared-mime-info, KIO service menus, native messaging manifests |
 | Stored credentials | AES-GCM with a per-user key in `~/.local/share/ShareX/dpapi.key` (replaces Windows DPAPI) |
 | OCR | Tesseract CLI |
+| Screen recording (GIF and video) | Frames of the selected area from KWin `ScreenShot2.CaptureArea`, streamed as raw video into FFmpeg (`/usr/bin/ffmpeg`); the recording frame is cut out with the X Shape extension so the recorded area stays clickable |
 
 KWin only allows `ScreenShot2` for executables whose `.desktop` file declares
 `X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2` and whose `Exec` points at that binary. `install.sh`
@@ -35,7 +36,8 @@ has its own desktop entry.
 
 ## Known limitations
 
-- Screen recording (video/GIF) is not implemented on Linux yet.
+- Screen recording has no audio on Linux yet, and needs KDE (KWin) for frames. The Windows-only "native" recorder
+  option is ignored; recordings always go through FFmpeg.
 - Print Screen and Shift+Print Screen are bound to Spectacle by default in KDE, so ShareX can't register them.
   Unbind them in System Settings > Shortcuts > Spectacle, or choose different hotkeys in ShareX.
 - Cursor capture uses the cursor theme's default arrow; Wayland does not expose the live cursor image.
