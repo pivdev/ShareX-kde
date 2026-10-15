@@ -56,8 +56,7 @@ namespace ShareX
 
         private void OnHotkeyPressed(ushort id, InputKey key, Modifiers modifier)
         {
-            // Fullscreen detection uses Win32 window APIs, so the setting is ignored on other platforms for now.
-            if (!IgnoreHotkeys && (!ApplicationState.Settings.DisableHotkeysOnFullscreen || !OperatingSystem.IsWindows() || !CaptureHelpers.IsActiveWindowFullscreen()))
+            if (!IgnoreHotkeys && (!ApplicationState.Settings.DisableHotkeysOnFullscreen || !CaptureHelpers.IsActiveWindowFullscreen()))
             {
                 HotkeySettings hotkeySetting = Hotkeys.Find(x => x.HotkeyInfo.ID == id);
 
