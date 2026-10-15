@@ -55,6 +55,7 @@ namespace ShareX.HelpersLib
                 [InputKey.Delete] = 0x01000007,
                 [InputKey.Pause] = 0x01000008,
                 [InputKey.PrintScreen] = 0x01000009, // Key_Print
+                [InputKey.Print] = 0x01000009, // Hotkeys saved by the X11 key name "Print" before it was mapped to PrintScreen
                 [InputKey.Clear] = 0x0100000b,
                 [InputKey.Home] = 0x01000010,
                 [InputKey.End] = 0x01000011,
