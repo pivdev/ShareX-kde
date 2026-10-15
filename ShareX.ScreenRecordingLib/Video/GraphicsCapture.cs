@@ -1,4 +1,4 @@
-#region License Information (GPL v3)
+﻿#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -22,6 +22,8 @@
 */
 
 #endregion License Information (GPL v3)
+
+#if !LINUX // linux-port: Windows-only implementation
 
 using ShareX.ScreenRecordingLib.Native;
 using System.Drawing;
@@ -277,3 +279,5 @@ internal sealed unsafe class GraphicsCapture : IDisposable
 
     public void Dispose() => DisposeSources();
 }
+
+#endif

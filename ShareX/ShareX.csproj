@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <TargetFramework Condition="'$(IsLinuxBuild)' != 'true'">net10.0-windows10.0.22621.0</TargetFramework>
+    <TargetFramework Condition="'$(IsLinuxBuild)' == 'true'">net10.0</TargetFramework>
     <OutputType>WinExe</OutputType>
-    <ApplicationIcon>ShareX_Icon.ico</ApplicationIcon>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="'$(IsLinuxBuild)' != 'true'">ShareX_Icon.ico</ApplicationIcon>
+    <ApplicationManifest Condition="'$(IsLinuxBuild)' != 'true'">app.manifest</ApplicationManifest>
     <Description>Screen capture, file sharing and productivity tool</Description>
-    <SupportedOSPlatformVersion>10.0.22621.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="'$(IsLinuxBuild)' != 'true'">10.0.22621.0</SupportedOSPlatformVersion>
     <CETCompat>false</CETCompat>
   </PropertyGroup>
   <ItemGroup>

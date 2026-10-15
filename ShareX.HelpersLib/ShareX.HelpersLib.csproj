@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework Condition="'$(IsLinuxBuild)' != 'true'">net10.0-windows</TargetFramework>
+    <TargetFramework Condition="'$(IsLinuxBuild)' == 'true'">net10.0</TargetFramework>
     <OutputType>Library</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -11,7 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Existing Windows printing and shell icon interop still require System.Drawing.Common. -->
-    <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App" Condition="'$(IsLinuxBuild)' != 'true'" />
+    <PackageReference Include="System.Drawing.Common" Condition="'$(IsLinuxBuild)' == 'true'" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ShareX.Avalonia\ShareX.Avalonia.csproj" />

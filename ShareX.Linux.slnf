@@ -1,0 +1,18 @@
+{
+  "solution": {
+    "path": "ShareX.sln",
+    "projects": [
+      "ShareX\\ShareX.csproj",
+      "ShareX.Avalonia\\ShareX.Avalonia.csproj",
+      "ShareX.HelpersLib\\ShareX.HelpersLib.csproj",
+      "ShareX.HistoryLib\\ShareX.HistoryLib.csproj",
+      "ShareX.ImageEditor\\ShareX.ImageEditor.csproj",
+      "ShareX.ImageEffectsLib\\ShareX.ImageEffectsLib.csproj",
+      "ShareX.NativeMessagingHost\\ShareX.NativeMessagingHost.csproj",
+      "ShareX.ScreenCaptureLib\\ShareX.ScreenCaptureLib.csproj",
+      "ShareX.ScreenRecordingLib\\ShareX.ScreenRecordingLib.csproj",
+      "ShareX.Tools\\ShareX.Tools.csproj",
+      "ShareX.UploadersLib\\ShareX.UploadersLib.csproj"
+    ]
+  }
+}

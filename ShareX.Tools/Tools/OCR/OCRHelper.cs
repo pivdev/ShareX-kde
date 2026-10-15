@@ -1,4 +1,4 @@
-#region License Information (GPL v3)
+﻿#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -22,6 +22,8 @@
 */
 
 #endregion License Information (GPL v3)
+
+#if !LINUX // linux-port: Windows-only implementation
 
 using ShareX.HelpersLib;
 using Windows.Globalization;
@@ -106,3 +108,5 @@ public static class OCRHelper
         return string.Join(singleLine ? " " : Environment.NewLine, lines);
     }
 }
+
+#endif
