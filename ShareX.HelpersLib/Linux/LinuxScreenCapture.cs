@@ -332,9 +332,9 @@ namespace ShareX.HelpersLib
                 4 => (SKColorType.Bgra8888, SKAlphaType.Opaque),  // Format_RGB32
                 5 => (SKColorType.Bgra8888, SKAlphaType.Unpremul), // Format_ARGB32
                 6 => (SKColorType.Bgra8888, SKAlphaType.Premul),   // Format_ARGB32_Premultiplied
-                17 => (SKColorType.Rgba8888, SKAlphaType.Opaque),  // Format_RGBX8888
-                18 => (SKColorType.Rgba8888, SKAlphaType.Unpremul),
-                19 => (SKColorType.Rgba8888, SKAlphaType.Premul),
+		16 => (SKColorType.Rgba8888, SKAlphaType.Opaque),   // Format_RGBX8888
+		17 => (SKColorType.Rgba8888, SKAlphaType.Unpremul), // Format_RGBA8888
+		18 => (SKColorType.Rgba8888, SKAlphaType.Premul),   // Format_RGBA8888_Premultiplied
                 _ => throw new InvalidDataException("Unsupported KWin screenshot pixel format: " + format)
             };
 
